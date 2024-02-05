@@ -28,12 +28,14 @@ class PickledObjectS3IOManager(UPathIOManager):
         s3_bucket: str,
         s3_session: Any,
         s3_prefix: Optional[str] = None,
+        s3_extra_args_parameters: dict[str, str] = None
     ):
         self.bucket = check.str_param(s3_bucket, "s3_bucket")
         check.opt_str_param(s3_prefix, "s3_prefix")
         self.s3 = s3_session
         self.s3.list_objects(Bucket=s3_bucket, Prefix=s3_prefix, MaxKeys=1)
         base_path = UPath(s3_prefix) if s3_prefix else None
+        self.s3_extra_args_parameter = s3_extra_args_parameters
         super().__init__(base_path=base_path)
 
     def load_from_path(self, context: InputContext, path: UPath) -> Any:
@@ -50,7 +52,7 @@ class PickledObjectS3IOManager(UPathIOManager):
 
         pickled_obj = pickle.dumps(obj, PICKLE_PROTOCOL)
         pickled_obj_bytes = io.BytesIO(pickled_obj)
-        self.s3.upload_fileobj(pickled_obj_bytes, self.bucket, path.as_posix())
+        self.s3.upload_fileobj(pickled_obj_bytes, self.bucket, path.as_posix(), self.s3_extra_args_parameter)
 
     def path_exists(self, path: UPath) -> bool:
         try:
